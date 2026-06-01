@@ -136,7 +136,7 @@ partial-refresh time over Serial.
 
 ### Tip: run SPI at 20 MHz
 
-The ~510 ms is a fixed waveform cost; the rest of a partial is the time to clock
+The ~510 ms is a fixed waveform cost; the rest of a partial refresh is the time to clock
 the image data into the panel's RAM. The SSD1683 is rated for **20 MHz** SPI but
 GxEPD2 defaults to 10 MHz, so bumping it shaves the data-transfer part (most
 noticeable on large update regions). Add this once, after `display.init(...)`:
@@ -158,6 +158,9 @@ architectures transparently use GxEPD2's stock per-byte path.
 Note: none of this touches the ~498 ms waveform itself (that's fixed) — these
 only trim the *data-write* time, which scales with how many pixels you update.
 Small/typical partials are already near the ~510 ms floor.
+
+If you run it at 10MHz without using SPI block writes, partial refresh will take ~510ms for small updates and will get up to ~600ms for full-screen updates.
+By applying 20MHz combined with block writes we get partial refresh ~500ms for small updates and ~530ms for full screen.
 
 ## How it works
 
