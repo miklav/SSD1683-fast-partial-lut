@@ -28,6 +28,11 @@ controller, instead of using the panel's factory waveform.
 
 ## Why this exists
 
+The 4.2" panel is advertised with a **0.3 s partial refresh**, but in reality
+you only get **~1 s** with GxEPD2. Smaller panels on the closely-related SSD1680
+controller *do* reach a fast partial refresh, yet the 4.2" GDEY042T81 stays
+around ~1 s. Hence this custom-LUT effort to bring it down to **~0.5 s**.
+
 On the SSD1683, the obvious approaches to a faster partial refresh all fail in
 confusing ways, and the controller's custom-LUT mechanism is barely documented.
 This repo is the result of reverse-engineering it from the datasheet — so you
