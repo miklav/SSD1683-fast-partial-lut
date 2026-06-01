@@ -183,6 +183,11 @@ are 2 bits (`VSS`/`VSH1`/`VSL`/`VSH2`).
   soft-start / drive-voltage bytes come from its `GxEPD2_4G` 4-grayscale LUT for
   this panel.
 - SSD1683 datasheet (Solomon Systech, Rev 1.0).
+- This work is a little side project while working on a bigger one (not yet
+  released). Creating this custom LUT wouldn't have been possible without Claude
+  — my own knowledge of how EPDs work is very limited, and I certainly wouldn't
+  have succeeded in making a custom LUT without an AI (the paid version of Claude
+  was used).
 
 ## License
 
