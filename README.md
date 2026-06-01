@@ -134,6 +134,21 @@ See [`examples/MovingCircle`](examples/MovingCircle/MovingCircle.ino) for a
 self-contained benchmark that bounces a circle around the panel and prints each
 partial-refresh time over Serial.
 
+### Tip: run SPI at 20 MHz
+
+The ~510 ms is a fixed waveform cost; the rest of a partial is the time to clock
+the image data into the panel's RAM. The SSD1683 is rated for **20 MHz** SPI but
+GxEPD2 defaults to 10 MHz, so bumping it shaves the data-transfer part (most
+noticeable on large update regions). Add this once, after `display.init(...)`:
+
+```cpp
+#include <SPI.h>
+display.epd2.selectSPI(SPI, SPISettings(20000000, MSBFIRST, SPI_MODE0));
+```
+
+20 MHz is the controller's rated maximum — don't go higher. If you see image
+glitches (e.g. with long/marginal wiring), drop back to `10000000`.
+
 ## How it works
 
 The custom-LUT partial-update sequence (after the initial full refresh):

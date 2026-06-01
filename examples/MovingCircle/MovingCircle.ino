@@ -88,6 +88,10 @@ void setup() {
   SPI.begin();
 
   display.init(115200, true, 2, false);
+  // The SSD1683 is rated for 20 MHz SPI; GxEPD2 defaults to 10 MHz. Bumping it
+  // speeds up the image data transfer (the part of a partial that isn't the
+  // fixed ~498 ms waveform). Drop back to 10000000 if you see image glitches.
+  display.epd2.selectSPI(SPI, SPISettings(20000000, MSBFIRST, SPI_MODE0));
   display.setRotation(0);
   randomSeed(esp_random());
 
