@@ -8,6 +8,12 @@ stock driver's built-in (OTP) waveform.
 It does this by preloading a **fully custom 227-byte waveform LUT** into the
 controller, instead of using the panel's factory waveform.
 
+<p align="center">
+  <img src="examples/MovingCircle/moving_circle.gif" width="320"
+       alt="WeAct 4.2&quot; GDEY042T81 doing sub-second partial refreshes (MovingCircle demo)">
+  <br><em>The MovingCircle example: each step is a ~510 ms partial refresh.</em>
+</p>
+
 ```
               partial refresh time (400x300, B/W)
   stock GxEPD2 (OTP waveform)   ###########################  ~1050 ms
