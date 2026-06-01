@@ -126,8 +126,64 @@ public:
     _power_is_on = true;
   }
 
+#if defined(ESP32) || defined(ESP8266)
+  // ---- Bulk-SPI image writes (ESP only) ----------------------------------
+  // Stock GxEPD2 ships image data to RAM one byte per SPI.transfer(). These
+  // assemble each row and push it as a single SPI.writeBytes() block write,
+  // cutting the per-partial data-transfer overhead (most visible on large
+  // update regions; e.g. a full-screen-ish partial ~557 -> ~528 ms at 20 MHz).
+  // Windowing mirrors the parent's _writeImage exactly; only the inner per-byte
+  // loop is bulked. The 0x26 "previous" bank is still kept in sync (clean image).
+  // Covers the common firstPage/nextPage single-page path; writeImagePart
+  // (displayWindow / low-RAM multi-page) falls back to the stock per-byte path.
+  void writeImage(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h,
+                  bool invert = false, bool mirror_y = false, bool pgm = false) override {
+    _writeImageBulk(0x24, bitmap, x, y, w, h, invert, mirror_y, pgm);
+  }
+  void writeImageAgain(const uint8_t bitmap[], int16_t x, int16_t y, int16_t w, int16_t h,
+                       bool invert = false, bool mirror_y = false, bool pgm = false) override {
+    _writeImageBulk(0x26, bitmap, x, y, w, h, invert, mirror_y, pgm); // previous
+    _writeImageBulk(0x24, bitmap, x, y, w, h, invert, mirror_y, pgm); // current
+  }
+#endif
+
 private:
   bool _lut_loaded = false;
+
+#if defined(ESP32) || defined(ESP8266)
+  // Bulk version of the parent's _writeImage: same clipping/index math, but one
+  // SPI.writeBytes() per row instead of per-byte. Assumes the panel is already
+  // initialised (true once the first full refresh has run, which our refresh()
+  // forces), so it omits the parent's init/initial-clear guards.
+  void _writeImageBulk(uint8_t command, const uint8_t bitmap[], int16_t x, int16_t y,
+                       int16_t w, int16_t h, bool invert, bool mirror_y, bool pgm) {
+    int16_t wb = (w + 7) / 8;
+    x -= x % 8;
+    w = wb * 8;
+    int16_t x1 = x < 0 ? 0 : x;
+    int16_t y1 = y < 0 ? 0 : y;
+    int16_t w1 = x + w < int16_t(WIDTH)  ? w : int16_t(WIDTH)  - x;
+    int16_t h1 = y + h < int16_t(HEIGHT) ? h : int16_t(HEIGHT) - y;
+    int16_t dx = x1 - x, dy = y1 - y;
+    w1 -= dx; h1 -= dy;
+    if ((w1 <= 0) || (h1 <= 0)) return;
+    _setPartialRamAreaFL(x1, y1, w1, h1);
+    _writeCommand(command);
+    _startTransfer();                          // beginTransaction (writeBytes uses block path) + CS low
+    const int16_t nb = w1 / 8;
+    uint8_t row[(WIDTH + 7) / 8];              // <= 50 bytes
+    for (int16_t i = 0; i < h1; i++) {
+      for (int16_t j = 0; j < nb; j++) {
+        int16_t idx = mirror_y ? j + dx / 8 + ((h - 1 - (i + dy))) * wb
+                               : j + dx / 8 + (i + dy) * wb;
+        uint8_t data = pgm ? pgm_read_byte(&bitmap[idx]) : bitmap[idx];
+        row[j] = invert ? ~data : data;
+      }
+      _pSPIx->writeBytes(row, nb);             // one block burst per row
+    }
+    _endTransfer();                            // CS high + endTransaction
+  }
+#endif
 
   static const uint8_t FRAMES   = 24;   // per-phase TP (inert: does not change timing here)
   static const uint8_t GROUP_RP = 1;    // group-0 repeat

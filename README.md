@@ -149,6 +149,16 @@ display.epd2.selectSPI(SPI, SPISettings(20000000, MSBFIRST, SPI_MODE0));
 20 MHz is the controller's rated maximum — don't go higher. If you see image
 glitches (e.g. with long/marginal wiring), drop back to `10000000`.
 
+On **ESP32/ESP8266** the library also overrides `writeImage`/`writeImageAgain` to
+push image data with bulk `SPI.writeBytes()` block writes instead of byte-by-byte
+— another chunk off the data-transfer time on larger updates (e.g. a near
+full-screen partial ~557 → ~528 ms at 20 MHz, clean image). It's automatic; other
+architectures transparently use GxEPD2's stock per-byte path.
+
+Note: none of this touches the ~498 ms waveform itself (that's fixed) — these
+only trim the *data-write* time, which scales with how many pixels you update.
+Small/typical partials are already near the ~510 ms floor.
+
 ## How it works
 
 The custom-LUT partial-update sequence (after the initial full refresh):
